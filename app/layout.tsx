@@ -1,5 +1,10 @@
+"use client"
+
+
+import { DndProvider } from 'react-dnd'
 import './globals.css'
 import { Inter } from 'next/font/google'
+import { HTML5Backend } from 'react-dnd-html5-backend'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -15,7 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <DndProvider backend={HTML5Backend}>
+        <body className={inter.className}>{children}</body>
+      </DndProvider>
     </html>
-  )
+  );
 }
