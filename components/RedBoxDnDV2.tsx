@@ -1,41 +1,81 @@
 import React, { useState } from "react";
 import {
   DndContext,
-  useDroppable,
-  useDraggable,
   DragEndEvent,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useDraggable,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+
+const draggable = [
+  {
+    id: "DG",
+    name: "D",
+    position: {
+      x: 24,
+      y: 24,
+    },
+  },
+  {
+    id: "KA",
+    name: "K",
+    position: {
+      x: 164,
+      y: 164,
+    },
+  },
+];
 
 type BoxType = {
-  id: number;
-  x: number;
-  y: number;
+  id: string;
+  name: string;
+  position: {
+    x: number;
+    y: number;
+  };
 };
 
 const RedBoxDnDV2 = () => {
-  const [boxes, setBoxes] = useState<BoxType[]>([]);
-  const { isOver, setNodeRef } = useDroppable({
-    id: "droppable",
-  });
+  const [boxes, setBoxes] = useState<BoxType[]>([...draggable]);
+  const sensors = useSensors(
+    useSensor(KeyboardSensor),
+    useSensor(TouchSensor),
+    useSensor(MouseSensor)
+  );
 
   const addBox = () => {
-    setBoxes([...boxes, { id: boxes.length, x: 0, y: 0 }]);
+    const newBox = {
+      id: `${boxes.length}`,
+      name: `${boxes.length}`,
+      position: {
+        x: 20,
+        y: 20,
+      },
+    };
+    setBoxes([...boxes, newBox]);
   };
 
-  const onDragEnd = ({ active, activatorEvent }: DragEndEvent) => {
-  const updatedBoxes = boxes.map(box => {
-      if (box.id !== active.id) {
-        return box
-      }
+  const handleDragEnd = (ev: DragEndEvent) => {
+    const activeId = ev.active.id;
 
-      return {
-        ...box,
-        // x: activatorEvent.clientX,
-        // y: activatorEvent.clientY
-      }
-    })
-
-    setBoxes(updatedBoxes)
+    setBoxes(box => {
+      return box.map(draggable => {
+        if (draggable.id === activeId) {
+          return {
+            ...draggable,
+            position: {
+              x: (draggable.position.x += ev.delta.x),
+              y: (draggable.position.y += ev.delta.y),
+            },
+          };
+        }
+        return draggable;
+      });
+    });
   };
 
   return (
@@ -46,34 +86,42 @@ const RedBoxDnDV2 = () => {
       >
         Add Box
       </button>
-      <DndContext onDragEnd={onDragEnd}>
-        <div
-          ref={setNodeRef}
-          className={`h-[80vh] w-full relative ring-1 rounded-lg overflow-hidden ${
-            isOver ? "ring-red-500" : "ring-red-400"
-          }`}
-        >
+      <div className="h-[80vh] w-full ring-1 relative rounded-lg overflow-hidden">
+        <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
           {boxes.map(box => (
-            <DraggableBox {...box} key={box.id} />
+            <DraggableBox
+              {...box}
+              key={box.id}
+              styles={{
+                position: "absolute",
+                left: `${box.position.x}px`,
+                top: `${box.position.y}px`,
+              }}
+            />
           ))}
-        </div>
-      </DndContext>
+        </DndContext>
+      </div>
     </div>
   );
 };
 
 export default RedBoxDnDV2;
 
-const DraggableBox: React.FC<BoxType> = ({ id, x, y }) => {
+type DraggableProps = {
+  id: string;
+  styles?: React.CSSProperties;
+  name?: string;
+};
+
+const DraggableBox: React.FC<DraggableProps> = ({ id, styles, name }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id,
   });
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    ...styles,
+  };
 
   return (
     <div
@@ -82,9 +130,9 @@ const DraggableBox: React.FC<BoxType> = ({ id, x, y }) => {
       {...listeners}
       {...attributes}
       style={style}
-      className="w-20 h-20 rounded-lg absolute transition-colors flex justify-center items-center text-xl font-semibold bg-cyan-500"
+      className="absolute w-20 h-20 rounded-lg transition-colors flex justify-center items-center text-xl font-semibold bg-red-500"
     >
-      {id}
+      {name}
     </div>
   );
 };

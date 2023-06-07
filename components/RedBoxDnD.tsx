@@ -10,41 +10,33 @@ type BoxType = {
 };
 
 const RedBoxDnd = () => {
-  const wrapperRef = useRef<null | HTMLDivElement>(null);
-  const [board, setBoard] = useState<BoxType[]>([]);
+  const [boxes, setBoxes] = useState<BoxType[]>([]);
 
   const [{ isOver }, drop] = useDrop<BoxType, void, { isOver: boolean }>({
     accept: "BoxType",
-    drop: item => onDrop(item),
+    drop: (item, monitor) => onDrop(item, monitor),
     collect: (monitor: DropTargetMonitor) => ({
       isOver: monitor.isOver(),
     }),
   });
 
-  const onDrop = (item: BoxType) => {
-    const box = document.getElementById(`box-${item.number}`);
-    if (wrapperRef.current && box) {
-      const parentRect = wrapperRef.current.getBoundingClientRect();
-      const elementRect = box.getBoundingClientRect();
+  const onDrop = (item: BoxType, monitor: DropTargetMonitor<BoxType, void>) => {
+    const newBoxes = boxes.map(box => {
+      if (item.number !== box.number) {
+        return box;
+      }
 
-      const position = {
-        top: elementRect.top - parentRect.top,
-        left: elementRect.left - parentRect.left,
-        bottom: elementRect.bottom - parentRect.top,
-        right: elementRect.right - parentRect.left,
+      return {
+        ...box,
+        x: monitor.getClientOffset()?.x - 55,
+        y: monitor.getClientOffset()?.y - 115,
       };
-
-      // Output the position information
-      console.log("Element Position (relative to parent):");
-      console.log("Top: " + position.top);
-      console.log("Left: " + position.left);
-      console.log("Bottom: " + position.bottom);
-      console.log("Right: " + position.right);
-    }
+    });
+    setBoxes(newBoxes);
   };
 
   const addBox = () => {
-    setBoard([...board, { number: board.length, x: 0, y: 0 }]);
+    setBoxes([...boxes, { number: boxes.length, x: 0, y: 0 }]);
   };
 
   return (
@@ -55,18 +47,16 @@ const RedBoxDnd = () => {
       >
         Add Box
       </button>
-      <div ref={wrapperRef}>
         <div
           ref={drop}
-          className={`h-[80vh] w-full ring-1 rounded-lg ${
+          className={`h-[80vh] relative overflow-y-hidden w-full ring-1 rounded-lg ${
             isOver ? "ring-red-500" : "ring-red-400"
           }`}
         >
-          {board.map(item => (
+          {boxes.map(item => (
             <DraggableBox {...item} key={item.number} />
           ))}
         </div>
-      </div>
     </div>
   );
 };
@@ -92,7 +82,8 @@ const DraggableBox: React.FC<BoxType> = ({ number, x, y }) => {
     <div
       ref={drag}
       id={`box-${number}`}
-      className={`w-20 h-20 rounded-lg transition-colors flex justify-center items-center text-xl font-semibold ${
+      style={{ transform: `translate3d(${x}px, ${y}px, 0)` }}
+      className={`w-20 h-20 absolute rounded-lg transition-colors flex justify-center items-center text-xl font-semibold ${
         isDragging ? "bg-red-500" : "bg-yellow-500"
       }`}
     >
